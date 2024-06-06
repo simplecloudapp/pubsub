@@ -1,0 +1,38 @@
+[versions]
+kotlin = "1.8.0"
+kotlinCoroutines = "1.4.2"
+shadow = "8.1.1"
+protobuf = "3.25.2"
+grpc = "1.61.0"
+grpcKotlin = "1.4.1"
+simpleCloudProtoSpecs = "1.4.1.1.20240606064605.c07118735783"
+sonatypeCentralPortalPublisher = "1.2.3"
+
+[libraries]
+kotlinJvm = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlinTest = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlinCoroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinCoroutines" }
+
+protobufKotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
+
+grpcStub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
+grpcKotlinStub = { module = "io.grpc:grpc-kotlin-stub", version.ref = "grpcKotlin" }
+grpcProtobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
+grpcNettyShaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "grpc" }
+
+simpleCloudProtoSpecs = { module = "build.buf.gen:simplecloud_proto-specs_grpc_kotlin", version.ref = "simpleCloudProtoSpecs" }
+
+[bundles]
+proto = [
+    "protobufKotlin",
+    "grpcStub",
+    "grpcKotlinStub",
+    "grpcProtobuf",
+    "grpcNettyShaded",
+    "simpleCloudProtoSpecs"
+]
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+sonatypeCentralPortalPublisher = { id = "net.thebugmc.gradle.sonatype-central-portal-publisher", version.ref = "sonatypeCentralPortalPublisher" }
