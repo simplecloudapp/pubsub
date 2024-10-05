@@ -6,7 +6,7 @@ import io.grpc.stub.StreamObserver
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
-class PubSubService  : PubSubServiceGrpc.PubSubServiceImplBase() {
+class PubSubService : PubSubServiceGrpc.PubSubServiceImplBase() {
 
     private val subscribers = ConcurrentHashMap<String, ConcurrentLinkedQueue<StreamObserver<Message>>>()
 
@@ -20,7 +20,6 @@ class PubSubService  : PubSubServiceGrpc.PubSubServiceImplBase() {
         streamResponseObserver.setOnCancelHandler {
             subscribers.computeIfAbsent(topic) { k -> ConcurrentLinkedQueue() }.remove(responseObserver)
         }
-        println("Subscribed $topic")
     }
 
     override fun publish(request: PublishRequest, responseObserver: StreamObserver<PublishResponse>) {
@@ -41,8 +40,6 @@ class PubSubService  : PubSubServiceGrpc.PubSubServiceImplBase() {
                 size++
             }
         }
-
-        println("Published $topic ${message} ${size}")
 
         val response: PublishResponse = PublishResponse.newBuilder()
             .setSuccess(true)
