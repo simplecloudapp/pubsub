@@ -4,12 +4,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.shadow)
-    alias(libs.plugins.sonatypeCentralPortalPublisher)
+    alias(libs.plugins.sonatype.central.portal.publisher)
     `maven-publish`
 }
 
 group = "app.simplecloud"
-version = "1.0.4"
+version = "1.0.5"
 
 repositories {
     mavenCentral()
@@ -17,8 +17,8 @@ repositories {
 }
 
 dependencies {
-    testImplementation(rootProject.libs.kotlinTest)
-    implementation(rootProject.libs.kotlinJvm)
+    testImplementation(rootProject.libs.kotlin.test)
+    implementation(rootProject.libs.kotlin.jvm)
     api(rootProject.libs.bundles.proto)
 }
 
