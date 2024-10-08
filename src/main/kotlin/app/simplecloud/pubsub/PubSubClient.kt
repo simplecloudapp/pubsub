@@ -3,7 +3,10 @@ package app.simplecloud.pubsub
 import build.buf.gen.simplecloud.pubsub.v1.*
 import com.google.protobuf.Any
 import io.grpc.*
-import io.grpc.stub.StreamObserver
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -15,7 +18,7 @@ class PubSubClient(
 ) {
 
     private var channel: ManagedChannel = createControllerChannel()
-    private var stub: PubSubServiceGrpc.PubSubServiceStub = PubSubServiceGrpc.newStub(channel)
+    private var stub = PubSubServiceGrpcKt.PubSubServiceCoroutineStub(channel)
         .withCallCredentials(callCredentials)
 
     @Volatile
@@ -38,47 +41,40 @@ class PubSubClient(
     }
 
     private fun subscribeToTopic(topic: String) {
-        val request = SubscriptionRequest.newBuilder()
-            .setTopic(topic)
-            .build()
-
-        val responseObserver: StreamObserver<Message> = createResponseObserver(topic)
-
-        try {
-            stub.subscribe(request, responseObserver)
-        } catch (e: StatusRuntimeException) {
-            if (shouldReconnect(e)) {
-                attemptReconnect { subscribeToTopic(topic) }
-            } else {
-                throw e
-            }
+        val request = subscriptionRequest {
+            this.topic = topic
         }
-    }
 
-    private fun createResponseObserver(topic: String): StreamObserver<Message> {
-        return object : StreamObserver<Message> {
-            override fun onNext(message: Message) {
-                if (message.topic != topic) return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val messageFlow = stub.subscribe(request)
+                messageFlow.collect {
+                    if (it.topic != topic) return@collect
 
-                topicListeners[topic]?.forEach { topicListener ->
-                    if (topicListener.dataType.name.endsWith(message.messageBody.type)) {
-                        val messageData = message.messageBody.messageData.unpack(topicListener.dataType)
-                        @Suppress("UNCHECKED_CAST")
-                        (topicListener.listener as PubSubListener<com.google.protobuf.Message>).handle(messageData)
+                    topicListeners[topic]?.forEach { topicListener ->
+                        if (topicListener.dataType.name.endsWith(it.messageBody.type)) {
+                            val messageData = it.messageBody.messageData.unpack(topicListener.dataType)
+                            @Suppress("UNCHECKED_CAST")
+                            (topicListener.listener as PubSubListener<com.google.protobuf.Message>).handle(messageData)
+                        }
                     }
                 }
-            }
 
-            override fun onError(t: Throwable) {
-                if (t !is StatusRuntimeException) {
-                    t.printStackTrace()
+                messageFlow.catch {
+                    if (it !is StatusException) {
+                        it.printStackTrace()
+                    }
+
+                    if (shouldReconnect(it)) {
+                        attemptReconnect { subscribeToTopic(topic) }
+                    }
                 }
-                if (shouldReconnect(t)) {
+            } catch (e: StatusException) {
+                if (shouldReconnect(e)) {
                     attemptReconnect { subscribeToTopic(topic) }
+                } else {
+                    throw e
                 }
-            }
-
-            override fun onCompleted() {
             }
         }
     }
@@ -91,38 +87,23 @@ class PubSubClient(
     }
 
     fun publish(topic: String, message: com.google.protobuf.Message) {
-        val request: PublishRequest = PublishRequest.newBuilder()
-            .setTopic(topic)
-            .setMessageBody(
-                MessageBody.newBuilder()
-                    .setType(message.descriptorForType.fullName)
-                    .setMessageData(Any.pack(message))
-                    .build()
-            )
-            .build()
-
-        val responseObserver: StreamObserver<PublishResponse> = object : StreamObserver<PublishResponse> {
-            override fun onNext(response: PublishResponse) {
-            }
-
-            override fun onError(t: Throwable) {
-                t.printStackTrace()
-                if (shouldReconnect(t)) {
-                    attemptReconnect { publish(topic, message) }
-                }
-            }
-
-            override fun onCompleted() {
+        val request = publishRequest {
+            this.topic = topic
+            this.messageBody = messageBody {
+                this.type = message.descriptorForType.fullName
+                this.messageData = Any.pack(message)
             }
         }
 
-        try {
-            stub.publish(request, responseObserver)
-        } catch (e: StatusRuntimeException) {
-            if (shouldReconnect(e)) {
-                attemptReconnect { publish(topic, message) }
-            } else {
-                throw e
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                stub.publish(request)
+            } catch (e: StatusException) {
+                if (shouldReconnect(e)) {
+                    attemptReconnect { publish(topic, message) }
+                } else {
+                    throw e
+                }
             }
         }
     }
@@ -132,7 +113,7 @@ class PubSubClient(
     }
 
     private fun shouldReconnect(t: Throwable): Boolean {
-        return t is StatusRuntimeException &&
+        return t is StatusException &&
                 (t.status.code == Status.Code.UNAVAILABLE || t.status.code == Status.Code.UNKNOWN)
     }
 
@@ -166,13 +147,13 @@ class PubSubClient(
 
         try {
             channel = createControllerChannel()
-            stub = PubSubServiceGrpc.newStub(channel)
+            stub = PubSubServiceGrpcKt.PubSubServiceCoroutineStub(channel)
                 .withCallCredentials(callCredentials)
 
             action()
             isReconnecting = false
             return true
-        } catch (e: StatusRuntimeException) {
+        } catch (e: StatusException) {
             if (!shouldReconnect(e)) {
                 throw e
             }
