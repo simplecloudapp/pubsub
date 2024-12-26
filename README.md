@@ -93,7 +93,7 @@ This repository is licensed under [Apache 2.0][license].
 <!-- LINK GROUP -->
 
 <!-- ✅ PLEASE EDIT -->
-[banner]: banner/pubsub/pubsub.png
+[banner]: [banner/pubsub/pubsub.png](https://github.com/simplecloudapp/branding/readme/banner/simplecloud.png)
 [issue-bug-report]: https://github.com/theSimpleCloud/pubsub/issues/new?labels=bug&projects=template=01_BUG-REPORT.yml&title=%5BBUG%5D+%3Ctitle%3E
 [issue-feature-request]: https://github.com/theSimpleCloud/pubsub/discussions/new?category=ideas
 [docs-thisproject]: https://docs.simplecloud.app/api/pubsub
