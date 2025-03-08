@@ -1,4 +1,4 @@
-package main
+package pubsub
 
 import (
 	"buf.build/gen/go/simplecloud/proto-specs/grpc/go/simplecloud/pubsub/v1/pubsubv1grpc"
