@@ -40,3 +40,9 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Extras ###
+test_impl/*
+.idea/*
+*.exe
+*.dll
